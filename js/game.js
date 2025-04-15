@@ -14,11 +14,11 @@
 
     // Carrega o céu diurno
     const skyLoader = new THREE.TextureLoader();
-    const daySkyTexture = skyLoader.load('../img/sky.jpeg');
+    const daySkyTexture = skyLoader.load('./img/sky.jpeg');
     daySkyTexture.mapping = THREE.EquirectangularReflectionMapping;
 
     // Textura do céu noturno
-    const nightSkyTexture = new THREE.TextureLoader().load('../img/night.png');
+    const nightSkyTexture = new THREE.TextureLoader().load('./img/night.png');
     nightSkyTexture.mapping = THREE.EquirectangularReflectionMapping;
     scene.background = daySkyTexture;
 
@@ -121,7 +121,7 @@
     // Criação do terreno
     function createGround() {
       const grassLoader = new THREE.TextureLoader();
-      grassLoader.load('../img/grass.png', function(texture) {
+      grassLoader.load('.s/img/grass.png', function(texture) {
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(world.size/10, world.size/10);
 
@@ -142,7 +142,7 @@
     function createTrees(count = 50) {
       const treeLoader = new THREE.TextureLoader();
       
-      treeLoader.load('../img/leaves.png', function(texture) {
+      treeLoader.load('./img/leaves.png', function(texture) {
         const leavesMaterial = new THREE.SpriteMaterial({ 
           map: texture,
           color: 0x55aa55,
