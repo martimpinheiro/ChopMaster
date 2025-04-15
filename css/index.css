@@ -1,0 +1,246 @@
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+body {
+  font-family: 'Press Start 2P', cursive;
+  background-color: #1e1e1e; /* Fundo mais escuro */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  overflow: hidden;
+}
+
+.menu-container {
+  background-color: rgba(101, 67, 33, 0.85);
+  color: #f0fff0;
+  padding: 45px;
+  border: 6px solid #654321;
+  border-radius: 12px;
+  box-shadow: 6px 6px 0 #3d2b1f;
+  text-align: center;
+  z-index: 10;
+}
+
+h1 {
+  font-size: 2.8em;
+  margin-bottom: 35px;
+  text-shadow: 3px 3px 0 #3d2b1f;
+}
+
+.menu-button {
+  display: block;
+  width: 260px;
+  padding: 14px 28px;
+  margin-bottom: 18px;
+  border: 3px solid #a0522d;
+  background-color: #556b2f;
+  font-family: 'Press Start 2P', cursive;
+  color: #f0fff0;
+  text-align: center;
+  text-decoration: none;
+  font-size: 1.3em;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.1s ease-in-out, box-shadow 0.1s ease-in-out, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.menu-button:hover {
+  transform: scale(1.08);
+  box-shadow: 4px 4px 0 #3d2b1f;
+  background-color: #6b8e23; /* Verde oliva */
+  border-color: #d2b48c;
+}
+
+.menu-button:active {
+  transform: scale(0.98);
+  box-shadow: 2px 2px 0 #3d2b1f;
+}
+
+#options-menu {
+  display: none;
+  margin-top: 35px;
+  padding: 35px;
+  border: 6px solid #654321;
+  border-radius: 12px;
+  font-family: 'Press Start 2P', cursive;
+  background-color: rgba(101, 67, 33, 0.8);
+}
+
+#options-menu h2 {
+  font-size: 2.2em;
+  font-family: 'Press Start 2P', cursive;
+  color: #f0fff0;
+  margin-bottom: 30px;
+  text-shadow: 2px 2px 0 #3d2b1f;
+}
+
+#options-menu label {
+  display: block;
+  margin-bottom: 12px;
+  color: #d3d3d3;
+  font-weight: bold;
+}
+
+#options-menu input[type="range"],
+#options-menu select {
+  width: calc(100% - 20px);
+  padding: 10px;
+  margin-bottom: 18px;
+  border: 3px solid #778899;
+  border-radius: 5px;
+  box-sizing: border-box;
+  background-color: #333;
+  color: #f0fff0;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.9em;
+}
+
+#options-menu button {
+  padding: 12px 22px;
+  border: 3px solid #a0522d;
+  background-color: #556b2f;
+  font-family: 'Press Start 2P', cursive;
+  color: #f0fff0;
+  font-size: 1.1em;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease-in-out, border-color 0.2s ease, box-shadow 0.1s ease-in-out;
+}
+
+#options-menu button:hover {
+  background-color: #6b8e23;
+  transform: scale(1.05);
+  border-color: #d2b48c;
+  box-shadow: 3px 3px 0 #3d2b1f;
+}
+
+#credits-menu {
+  display: none;
+  margin-top: 35px;
+  padding: 35px;
+  border: 6px solid #654321;
+  border-radius: 12px;
+  background-color: rgba(101, 67, 33, 0.8);
+}
+
+#credits-menu button {
+  padding: 12px 22px;
+  border: 3px solid #a0522d;
+  background-color: #556b2f;
+  font-family: 'Press Start 2P', cursive;
+  color: #f0fff0;
+  font-size: 1.1em;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease-in-out, border-color 0.2s ease, box-shadow 0.1s ease-in-out;
+}
+
+#credits-menu input[type="range"],
+#credits-menu select {
+  width: calc(100% - 20px);
+  padding: 10px;
+  margin-bottom: 18px;
+  border: 3px solid #778899;
+  border-radius: 5px;
+  box-sizing: border-box;
+  background-color: #333;
+  color: #f0fff0;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.9em;
+}
+
+/* Animação de fundo - Troncos caindo com variação */
+.lumberjack-animation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.log {
+  position: absolute;
+  background-color: #a0522d;
+  border: 2px solid #543827;
+  border-radius: 6px;
+  opacity: 0.8;
+  animation: fall-logs 5s linear infinite;
+  width: 50px;
+  height: 15px;
+}
+
+.log:nth-child(even) {
+  width: 65px;
+  height: 20px;
+  background-color: #8b4513; /* Tom mais escuro */
+}
+
+@keyframes fall-logs {
+  0% { transform: translateY(-30px) rotate(calc(var(--rotation) * 1deg)); opacity: 0; }
+  100% { transform: translateY(110vh) rotate(calc(var(--rotation) * 1deg)); opacity: 0.7; }
+}
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+html, body {
+	cursor: none;
+	height: 100%;
+}
+
+/* Cursor principal */
+.custom-cursor {
+	position: absolute;
+	top: 0;
+	left: 0;
+	pointer-events: none;
+	z-index: 10000;
+	transition: transform 0.05s linear;
+}
+
+/* "Ponta" do cursor */
+.custom-cursor .pointer {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	width: 70px;
+	height: 70px;
+	background-image: url('../img/axe.png');
+	background-size: cover;
+	background-repeat: no-repeat;
+	transition: width 0.1s ease-in-out, height 0.1s ease-in-out;
+}
+
+/* Efeito ao clicar */
+.custom-cursor.active .pointer {
+	width: 80px;
+	height: 80px;
+}
+
+.menu-button, 
+#options-menu button, 
+input, 
+select {
+  cursor: none !important; /* Esconde cursor padrão em elementos interativos */
+}
+
+.custom-cursor {
+  pointer-events: none; /* Permite interação com elementos abaixo do cursor */
+}
+
+/* Mantenha o cursor original escondido em todo o site */
+html, body {
+  cursor: none !important;
+}
+
+.menu-button:hover ~ .custom-cursor .pointer {
+  transform: translate(-50%, -50%) rotate(45deg) scale(1.1);
+  filter: brightness(1.2);
+}

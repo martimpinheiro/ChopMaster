@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Chop Master</title>
+<link rel="stylesheet" href="./css/index.css">
+</head>
+<body>
+  <div class="lumberjack-animation" id="lumberjack-container">
+  </div>
+
+  <div class="custom-cursor site-wide">
+    <div class="pointer"></div>
+  </div>
+
+  <div class="menu-container" id="main-menu">
+    <h1>Chop<br>Master</h1>
+    <a href="game.html"><button class="menu-button">PLAY</button></a>
+    <button class="menu-button" onclick="openOptions()">SETTINGS</button>
+    <button class="menu-button" onclick="showCredits()">ABOUT</button>
+  </div>
+
+  <div class="menu-container" id="options-menu">
+    <h2>FERRAMENTAS</h2>
+    <label for="volume">FORÇA DO MACHADO:</label>
+    <input type="range" id="volume" name="volume" min="0" max="100" value="80">
+
+    <label for="difficulty">DENSIDADE DA FLORESTA:</label>
+    <select id="difficulty" name="difficulty">
+      <option value="easy">ESPARSA</option>
+      <option value="medium">MODERADA</option>
+      <option value="hard">DENSE</option>
+    </select>
+
+    <button class="back-button" id="options-back-button" onclick="closeOptions()">VOLTAR AO CAMPO</button>
+    <button class="back-button" onclick="applyOptions()">EQUIPAR</button>
+  </div>
+
+  <div class="menu-container" id="credits-menu">
+    <h2>ABOUT</h2>
+    <p>Made for the course of Graphical Computing Introduction</p>
+    <button class="back-button" id="credits-back-button" onclick="closeCredits()">VOLTAR AO CAMPO</button>
+  </div>
+
+  <script src="./js/index.js"></script>
+</body>
+</html>
