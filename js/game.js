@@ -18,7 +18,7 @@
     daySkyTexture.mapping = THREE.EquirectangularReflectionMapping;
 
     // Textura do céu noturno
-    const nightSkyTexture = new THREE.TextureLoader().load('https://www.skymarvels.com/infinity/infinity%20-%20star%20sky%20-%20texture.jpg');
+    const nightSkyTexture = new THREE.TextureLoader().load('../img/night.png');
     nightSkyTexture.mapping = THREE.EquirectangularReflectionMapping;
     scene.background = daySkyTexture;
 
