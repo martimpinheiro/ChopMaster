@@ -121,7 +121,7 @@
     // Criação do terreno
     function createGround() {
       const grassLoader = new THREE.TextureLoader();
-      grassLoader.load('.s/img/grass.png', function(texture) {
+      grassLoader.load('./img/grass.png', function(texture) {
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(world.size/10, world.size/10);
 
