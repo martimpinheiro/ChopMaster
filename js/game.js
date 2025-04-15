@@ -14,7 +14,7 @@
 
     // Carrega o céu diurno
     const skyLoader = new THREE.TextureLoader();
-    const daySkyTexture = skyLoader.load('https://static.vecteezy.com/system/resources/previews/042/818/355/non_2x/8bit-pixel-graphic-blue-sky-background-with-clouds-vector.jpg');
+    const daySkyTexture = skyLoader.load('../img/sky.jpeg');
     daySkyTexture.mapping = THREE.EquirectangularReflectionMapping;
 
     // Textura do céu noturno
@@ -121,7 +121,7 @@
     // Criação do terreno
     function createGround() {
       const grassLoader = new THREE.TextureLoader();
-      grassLoader.load('https://i.redd.it/5m8846s5ix601.png', function(texture) {
+      grassLoader.load('../img/grass.png', function(texture) {
         texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(world.size/10, world.size/10);
 
