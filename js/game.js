@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import * as CANNON from 'https://cdn.skypack.dev/cannon-es';
 
 // =============================================
 // CONFIGURAÇÃO INICIAL
@@ -11,7 +11,6 @@ import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 // Criação da cena
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(0xcce0ff, 0.001);
-
 
 // Estados do ambiente
 const environment = {
@@ -38,15 +37,40 @@ const camera = new THREE.PerspectiveCamera(
 );
 camera.position.set(0, 10, 50);
 
-// Material genérico para vegetação
-function createVegetationMaterial(texture) {
-  return new THREE.MeshStandardMaterial({
-    map: texture,
-    transparent: true,
-    alphaTest: 0.5,
-    side: THREE.DoubleSide
-  });
-}
+// =============================================
+// CONFIGURAÇÃO DO CANNON.JS (FÍSICA)
+// =============================================
+
+// Criar mundo físico
+const physicsWorld = new CANNON.World();
+physicsWorld.gravity.set(0, -9.82, 0); // gravidade
+physicsWorld.broadphase = new CANNON.NaiveBroadphase();
+physicsWorld.solver.iterations = 10;
+
+// Material do chão
+const groundMaterial = new CANNON.Material();
+// Material para as árvores
+const treeMaterial = new CANNON.Material();
+
+// Contato entre materiais
+const groundTreeContact = new CANNON.ContactMaterial(
+  groundMaterial,
+  treeMaterial,
+  {
+    friction: 0.5,
+    restitution: 0.3
+  }
+);
+physicsWorld.addContactMaterial(groundTreeContact);
+
+// Criar corpo do chão
+const groundBody = new CANNON.Body({
+  mass: 0, // massa 0 = estático (não se move)
+  shape: new CANNON.Plane(),
+  material: groundMaterial
+});
+groundBody.quaternion.setFromEuler(-Math.PI/2, 0, 0); // girar para ficar horizontal
+physicsWorld.addBody(groundBody);
 
 // =============================================
 // CURSOR PERSONALIZADO
@@ -54,13 +78,15 @@ function createVegetationMaterial(texture) {
 
 const cursor = {
   element: document.createElement('div'),
-  axeSound: new Audio('./sounds/chop.mp3'),
+  axeSound: new Audio('../assets/sounds/chop.ogg'),
   init: function() {
     this.element.style.position = 'fixed';
-    this.element.style.width = '32px';
-    this.element.style.height = '32px';
-    this.element.style.backgroundImage = 'url(./img/axe_cursor.png)';
+    this.element.style.width = '100px';
+    this.element.style.height = '140px';
+    this.element.style.backgroundImage = 'url(../assets/models/cursors/axe.png)';
     this.element.style.backgroundSize = 'contain';
+    this.element.style.backgroundRepeat = 'no-repeat';
+    this.element.style.backgroundPosition = 'center';
     this.element.style.zIndex = '1000';
     this.element.style.pointerEvents = 'none';
     document.body.appendChild(this.element);
@@ -70,8 +96,8 @@ const cursor = {
     
     // Atualiza posição do cursor
     document.addEventListener('mousemove', (e) => {
-      this.element.style.left = `${e.clientX - 16}px`;
-      this.element.style.top = `${e.clientY - 16}px`;
+      this.element.style.left = `${e.clientX - 50}px`;
+      this.element.style.top = `${e.clientY - 70}px`;
     });
     
     // Oculta cursor padrão
@@ -84,6 +110,7 @@ const cursor = {
 };
 
 cursor.init();
+
 // =============================================
 // CONTROLOS DA CÂMARA
 // =============================================
@@ -102,10 +129,8 @@ const controls = {
 };
 
 // Limites do mundo
-const world = {
-  size: 100,
-  fixedHeight: 3
-};
+const worldSize = 100;
+const fixedHeight = 3;
 
 // =============================================
 // CONFIGURAÇÃO DO GLTF LOADER
@@ -118,9 +143,8 @@ gltfLoader.setDRACOLoader(dracoLoader);
 // Array para armazenar os modelos de árvores
 const treeModels = [];
 
-// Lista de caminhos dos modelos GLTF
 const treeModelPaths = [
-  './assets/models/trees/island_tree_01/modelo.glb',
+  './assets/models/trees/island_tree_01/modelo.glb', //island_tree_01/modelo.glb
   './assets/models/trees/island_tree_02/modelo.glb',
   './assets/models/trees/jacaranda_tree/modelo.glb',
   './assets/models/trees/tree_small_02/modelo.glb'
@@ -152,7 +176,7 @@ treeModelPaths.forEach((path, idx) => {
 });
 
 // =============================================
-// GERADOR DE FLORESTA COM GLTF
+// GERADOR DE FLORESTA COM GLTF E FÍSICA
 // =============================================
 function createForest(count = 30) {
   trees = [];
@@ -163,18 +187,54 @@ function createForest(count = 30) {
     const modelIdx = Math.floor(Math.random() * treeModels.length);
     const tree = treeModels[modelIdx].clone();
 
-    // ...restante código de posicionamento e escala...
-    tree.position.x = (Math.random() - 0.5) * world.size * 1.8;
-    tree.position.z = (Math.random() - 0.5) * world.size * 1.8;
+    // Posicionamento aleatório
+    tree.position.x = (Math.random() - 0.5) * worldSize * 1.8;
+    tree.position.z = (Math.random() - 0.5) * worldSize * 1.8;
     tree.position.y = 0;
     const scale = 2.5 + Math.random() * 1.0;
     tree.scale.set(scale, scale, scale);
     tree.rotation.y = Math.random() * Math.PI * 2;
+    
+    // Criar corpo físico para a árvore (inicialmente estático)
+    const treeHeight = 10 * scale; // altura aproximada da árvore
+    const treeRadius = 0.5 * scale; // raio do tronco
+    
+    const treeShape = new CANNON.Cylinder(
+      treeRadius * 0.8, // raio superior (mais estreito)
+      treeRadius, // raio inferior
+      treeHeight, // altura
+      8 // segmentos
+    );
+    
+    const treeBody = new CANNON.Body({
+      mass: 0, // massa 0 = estático (não cai)
+      position: new CANNON.Vec3(
+        tree.position.x,
+        tree.position.y + treeHeight / 2, // centro do cilindro
+        tree.position.z
+      ),
+      shape: treeShape,
+      material: treeMaterial
+    });
+    
+    // Orientar o cilindro para ficar na vertical
+    treeBody.quaternion.setFromEuler(
+      new CANNON.Vec3(1, 0, 0),
+      -Math.PI / 2
+    );
+    
+    physicsWorld.addBody(treeBody);
+    
+    // Dados da árvore
     tree.userData = {
       type: 'tree',
-      originalPosition: tree.position.clone(),
-      falling: false
+      physicsBody: treeBody,
+      hitCount: 0,
+      hitThreshold: Math.floor(Math.random() * 4) + 3, // 3-6 golpes
+      falling: false,
+      treeHeight: treeHeight
     };
+    
     scene.add(tree);
     trees.push(tree);
   }
@@ -195,15 +255,15 @@ let rainParticles = createRainParticles();
 
 function createRainParticles() {
   const rainGeometry = new THREE.BufferGeometry();
-  const rainCount = 1000; // Número de partículas de chuva
+  const rainCount = 1000;
 
   const positions = new Float32Array(rainCount * 3);
   const sizes = new Float32Array(rainCount);
 
   for (let i = 0; i < rainCount; i++) {
-    positions[i * 3] = (Math.random() - 0.5) * world.size * 2;
-    positions[i * 3 + 1] = Math.random() * world.size;
-    positions[i * 3 + 2] = (Math.random() - 0.5) * world.size * 2;
+    positions[i * 3] = (Math.random() - 0.5) * worldSize * 2;
+    positions[i * 3 + 1] = Math.random() * worldSize;
+    positions[i * 3 + 2] = (Math.random() - 0.5) * worldSize * 2;
     sizes[i] = 0.05 + Math.random() * 0.1;
   }
 
@@ -249,14 +309,14 @@ function createGround() {
   const grassLoader = new THREE.TextureLoader();
   grassLoader.load('./assets/models/textures/terrain.jpg', function(texture) {
     texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-    texture.repeat.set(world.size / 10, world.size / 10);
+    texture.repeat.set(worldSize / 10, worldSize / 10);
 
     const material = new THREE.MeshLambertMaterial({ 
       map: texture,
       side: THREE.DoubleSide
     });
 
-    const geometry = new THREE.PlaneGeometry(world.size * 2, world.size * 2);
+    const geometry = new THREE.PlaneGeometry(worldSize * 2, worldSize * 2);
     const ground = new THREE.Mesh(geometry, material);
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
@@ -264,44 +324,117 @@ function createGround() {
   });
 }
 
-
 // =============================================
 // RAYCASTING PARA INTERAÇÃO
 // =============================================
 
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+let hoveredTree = null;
 
 function setupInteraction() {
-  renderer.domElement.addEventListener('click', (event) => {
-    // Calcula posição normalizada do mouse
+  // Atualizar árvore sob o cursor
+  renderer.domElement.addEventListener('mousemove', (event) => {
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
     
-    // Atualiza raycaster
     raycaster.setFromCamera(mouse, camera);
     
-    // Verifica interseções com objetos clicáveis
-    const intersects = raycaster.intersectObjects([
-      ...trees,
-      ...bushes
-    ]);
+    const intersects = raycaster.intersectObjects(trees);
     
-    // Se encontrou uma árvore, executa ação
     if (intersects.length > 0) {
-      const object = intersects[0].object;
-      
-      if (object.userData.type === 'tree') {
-        // Efeito visual de corte
-        animateTreeCut(object);
-        
-        // Toca som de machado
-        cursor.playSound();
-      }
+      hoveredTree = intersects[0].object;
+    } else {
+      hoveredTree = null;
+    }
+  });
+
+  // Ação de derrubar árvore com Ctrl
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Control' && hoveredTree && !hoveredTree.userData.falling) {
+      handleTreeHit(hoveredTree);
     }
   });
 }
 
+function handleTreeHit(tree) {
+  // Incrementar contador de golpes
+  tree.userData.hitCount++;
+  cursor.playSound();
+  
+  // Criar partículas de madeira
+  createWoodParticles(tree.position.clone());
+  
+  // Verificar se a árvore deve cair
+  if (tree.userData.hitCount >= tree.userData.hitThreshold) {
+    makeTreeFall(tree);
+  } else {
+    // Animação de "balanço" leve
+    animateTreeShake(tree);
+  }
+}
+
+function animateTreeShake(tree) {
+  const originalRotation = tree.rotation.z;
+  const shakeIntensity = 0.1;
+  let shakeCount = 0;
+  
+  const shake = () => {
+    tree.rotation.z = originalRotation + Math.sin(shakeCount) * shakeIntensity;
+    shakeCount += 0.5;
+    
+    if (shakeCount < Math.PI * 2) {
+      requestAnimationFrame(shake);
+    } else {
+      tree.rotation.z = originalRotation;
+    }
+  };
+  
+  shake();
+}
+
+function makeTreeFall(tree) {
+  tree.userData.falling = true;
+  
+  // Ativar física da árvore
+  const treeBody = tree.userData.physicsBody;
+  treeBody.mass = 1; // agora tem massa e será afetado pela gravidade
+  treeBody.updateMassProperties();
+  
+  // Aplicar força para derrubar a árvore
+  const direction = new CANNON.Vec3(
+    camera.position.x - tree.position.x,
+    0,
+    camera.position.z - tree.position.z
+  );
+  direction.normalize();
+  
+  // Aplicar força no topo da árvore para criar efeito de alavanca
+  const forcePosition = new CANNON.Vec3(0, tree.userData.treeHeight / 2, 0);
+  
+  treeBody.applyImpulse(
+    new CANNON.Vec3(
+      direction.x * 20,
+      Math.random() * 5,
+      direction.z * 20
+    ),
+    forcePosition
+  );
+  
+  // Remover da lista de árvores após um tempo
+  setTimeout(() => {
+    const index = trees.indexOf(tree);
+    if (index > -1) {
+      trees.splice(index, 1);
+      
+      // Remover física depois de um tempo
+      setTimeout(() => {
+        physicsWorld.removeBody(treeBody);
+        scene.remove(tree);
+      }, 10000); // 10 segundos
+    }
+  }, 5000); // 5 segundos
+}
 
 function createWoodParticles(position) {
   const particleCount = 30;
@@ -329,13 +462,13 @@ function createWoodParticles(position) {
   
   // Animação das partículas
   let lifespan = 1.0;
-  const originalPositions = positions.slice();
   
   const animateParticles = () => {
     lifespan -= 0.02;
     material.opacity = lifespan;
     
     // Atualiza posições
+    const positions = particles.attributes.position.array;
     for (let i = 0; i < particleCount * 3; i += 3) {
       positions[i] += (Math.random() - 0.5) * 0.1;
       positions[i+1] += 0.1;
@@ -355,39 +488,6 @@ function createWoodParticles(position) {
   
   animateParticles();
 }
-
-// Animação de corte de árvore
-function animateTreeCut(tree) {
-  tree.userData.falling = true;
-  
-  const fallSpeed = 0.2;
-  const rotationSpeed = 0.05;
-  
-  const animateFall = () => {
-    if (!tree.userData.falling) return;
-    
-    tree.rotation.z += rotationSpeed;
-    tree.position.y -= fallSpeed;
-    
-    // Verificar se a árvore já caiu o suficiente
-    if (tree.position.y > -10) {
-      requestAnimationFrame(animateFall);
-    } else {
-      // Remover árvore da cena
-      scene.remove(tree);
-      
-      // Remover da lista de árvores
-      const index = trees.indexOf(tree);
-      if (index > -1) {
-        trees.splice(index, 1);
-      }
-    }
-  };
-  
-  animateFall();
-  createWoodParticles(tree.position.clone());
-}
-
 
 // =============================================
 // CONTROLOS INTERATIVOS
@@ -518,7 +618,7 @@ function updateRain() {
   if (!environment.isRaining) return;
 
   const positions = rainParticles.geometry.attributes.position.array;
-  const resetY = world.size;
+  const resetY = worldSize;
 
   for (let i = 0; i < positions.length; i += 3) {
     positions[i + 1] -= 2.5; // Velocidade da chuva
@@ -526,8 +626,8 @@ function updateRain() {
     // Reinicia as partículas que chegam no chão
     if (positions[i + 1] < 0) {
       positions[i + 1] = Math.random() * resetY + resetY;
-      positions[i] = (Math.random() - 0.5) * world.size * 2;
-      positions[i + 2] = (Math.random() - 0.5) * world.size * 2;
+      positions[i] = (Math.random() - 0.5) * worldSize * 2;
+      positions[i + 2] = (Math.random() - 0.5) * worldSize * 2;
     }
   }
 
@@ -539,7 +639,6 @@ function updateRain() {
 // =============================================
 
 let trees = [];
-let bushes = [];
 
 function updateCamera(delta) {
   const direction = new THREE.Vector3();
@@ -556,15 +655,13 @@ function updateCamera(delta) {
   camera.position.z += forwardZ * controls.speed * delta;
 
   // Mantém altura fixa
-  camera.position.y = world.fixedHeight;
+  camera.position.y = fixedHeight;
 
   // Limita movimento horizontal
-  camera.position.x = Math.max(-world.size, Math.min(world.size, camera.position.x));
-  camera.position.z = Math.max(-world.size, Math.min(world.size, camera.position.z));
+  camera.position.x = Math.max(-worldSize, Math.min(worldSize, camera.position.x));
+  camera.position.z = Math.max(-worldSize, Math.min(worldSize, camera.position.z));
 
   camera.rotation.set(controls.rotation.y, controls.rotation.x, 0, 'YXZ');
-  //trees.forEach(tree => tree.lookAt(camera.position));
-  //bushes.forEach(bush => bush.lookAt(camera.position));
 }
 
 // Loop de animação
@@ -574,6 +671,17 @@ function animate(currentTime = 0) {
 
   const delta = Math.min(0.1, (currentTime - lastTime) / 1000);
   lastTime = currentTime;
+
+  // Atualizar física
+  physicsWorld.step(1/60, delta, 3);
+
+  // Sincronizar objetos físicos com visuais
+  trees.forEach(tree => {
+    if (tree.userData.physicsBody) {
+      tree.position.copy(tree.userData.physicsBody.position);
+      tree.quaternion.copy(tree.userData.physicsBody.quaternion);
+    }
+  });
 
   updateCamera(delta);
   updateRain();
@@ -588,10 +696,9 @@ function init() {
   setupLights();
   createGround();
   
- 
   setupKeyboardControls();
   setupMouseControls();
-  setupInteraction(); // Configura interação com clique
+  setupInteraction();
 
   window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -601,9 +708,6 @@ function init() {
 
   animate();
 }
-
-
-// ...existing code...
 
 // ===== LOADING SCREEN =====
 const loadingScreen = document.createElement('div');
@@ -621,7 +725,6 @@ loadingScreen.style.alignItems = 'center';
 loadingScreen.style.justifyContent = 'center';
 loadingScreen.style.fontSize = '2em';
 loadingScreen.style.zIndex = 9999;
-
 
 const spinner = document.createElement('div');
 spinner.style.border = '10px solid #e0c097';
@@ -651,7 +754,6 @@ loadingScreen.appendChild(loadingText);
 
 document.body.appendChild(loadingScreen);
 
-
 // Carregar todos os modelos de árvores
 let loadedModels = 0;
 treeModelPaths.forEach((path, idx) => {
@@ -667,12 +769,9 @@ treeModelPaths.forEach((path, idx) => {
       });
       treeModels[idx] = model;
       loadedModels++;
-      // Atualiza texto do loading
-      loadingScreen.innerText = `A carregar árvores... (${loadedModels}/${treeModelPaths.length})`;
-      // Só cria a floresta quando todos os modelos estiverem carregados
-      if (treeModels.filter(Boolean).length === treeModelPaths.length) {
+      loadingText.innerText = `A carregar árvores... (${loadedModels}/${treeModelPaths.length})`;
+      if (loadedModels === treeModelPaths.length) {
         createForest();
-        // Esconde o loading screen
         loadingScreen.style.display = 'none';
       }
     },
@@ -680,15 +779,13 @@ treeModelPaths.forEach((path, idx) => {
     (error) => {
       console.error('Erro ao carregar modelo:', path, error);
       loadedModels++;
-      loadingScreen.innerText = `A carregar árvores... (${loadedModels}/${treeModelPaths.length})`;
-      if (treeModels.filter(Boolean).length === treeModelPaths.length) {
+      loadingText.innerText = `A carregar árvores... (${loadedModels}/${treeModelPaths.length})`;
+      if (loadedModels === treeModelPaths.length) {
         createForest();
         loadingScreen.style.display = 'none';
       }
     }
   );
 });
-
-// ...existing code...
 
 init();
